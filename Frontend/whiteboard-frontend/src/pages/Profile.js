@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createNewSocket } from '../utils/socket';
 
+const API_BASE_URL = process.env.REACT_APP_BACKEND_URL;
+
+
 function Profile() {
   const [profile, setProfile] = useState(null);
   const [canvases, setCanvases] = useState([]);
@@ -22,7 +25,7 @@ function Profile() {
       }
 
       try {
-        const profileRes = await fetch('http://localhost:5001/users/profile', {
+        const profileRes = await fetch(`${API_BASE_URL}/users/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -32,7 +35,7 @@ function Profile() {
         if (!profileRes.ok) throw new Error(profileData.message || 'Failed to fetch profile');
         setProfile(profileData.user);
 
-        const canvasRes = await fetch('http://localhost:5001/canvas', {
+        const canvasRes = await fetch(`${API_BASE_URL}/canvas`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -65,7 +68,7 @@ function Profile() {
     }
 
     try {
-      const res = await fetch('http://localhost:5001/canvas', {
+      const res = await fetch(`${API_BASE_URL}/canvas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +98,7 @@ function Profile() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5001/canvas/share/${canvasId}`, {
+      const res = await fetch(`${API_BASE_URL}/canvas/share/${canvasId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

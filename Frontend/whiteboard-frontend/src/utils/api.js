@@ -1,6 +1,6 @@
 //call aput api to update the canvas on URL /canvas/:canvasId
 
-const API_BASE_URL = 'http://localhost:5001/canvas';
+const API_BASE_URL = `${process.env.REACT_APP_BACKEND_URL}/canvas`;
 
 export const  updateCanvas = async (canvasId, elements) => {
   const token = localStorage.getItem('token');

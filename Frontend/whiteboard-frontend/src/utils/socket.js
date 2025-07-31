@@ -2,7 +2,7 @@
 import { io } from "socket.io-client";
 
 export const createNewSocket = () => {
-  return io("http://localhost:5001", { // Ensure port matches backend
+  return io(process.env.REACT_APP_BACKEND_URL, { // Ensure port matches backend
     autoConnect: false,
     transports: ["websocket"],
     reconnection: true,
