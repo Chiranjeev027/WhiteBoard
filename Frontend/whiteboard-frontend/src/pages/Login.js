@@ -14,6 +14,8 @@ function Login() {
     setIsLoading(true);
     setError("");
 
+    console.log("Attempting login to:", `${process.env.REACT_APP_BACKEND_URL}/users/login`);
+
     try {
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/users/login`, {
         method: "POST",
