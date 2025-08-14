@@ -20,38 +20,57 @@ function Signup() {
     return null;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const validationError = validateForm();
-    if (validationError) return setError(validationError);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const validationError = validateForm();
+  if (validationError) return setError(validationError);
 
-    setLoading(true);
-    setError('');
+  setLoading(true);
+  setError('');
 
-    try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/users/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+  try {
+    // 1. Register User
+    const registerResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/users/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+    const registerData = await registerResponse.json();
+    if (!registerResponse.ok) throw new Error(registerData.message || 'Registration failed');
+
+    // 2. Store Token
+    localStorage.setItem('token', registerData.token);
+    console.log('Token stored:', registerData.token);
+
+    // 3. Create User Profile (if needed)
+    const profileResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/profile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${registerData.token}`
       }
+    });
 
-      // Store token and redirect
-      localStorage.setItem('token', data.token);
-      setSuccess(true);
-      setTimeout(() => navigate('/profile'), 1500); // Smooth redirect
-      
-    } catch (err) {
-      setError(err.message || 'An error occurred during registration');
-    } finally {
-      setLoading(false);
+    if (!profileResponse.ok) {
+      throw new Error('Profile creation failed');
     }
-  };
+
+    // 4. Immediate Redirect
+    navigate('/profile', {
+      state: { 
+        newlyRegistered: true,
+        userData: registerData.user 
+      }
+    });
+
+  } catch (err) {
+    setError(err.message);
+    console.error('Signup error:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleChange = (e) => {
     setFormData({
