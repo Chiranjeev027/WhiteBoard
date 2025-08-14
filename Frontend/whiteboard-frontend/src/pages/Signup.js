@@ -27,46 +27,42 @@ const handleSubmit = async (e) => {
 
   setLoading(true);
   setError('');
+  setSuccess(false); // Reset success state
 
   try {
-    // 1. Register User
-    const registerResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/users/register`, {
+    // 1. Register User (this should create both user and profile)
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/users/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     });
 
-    const registerData = await registerResponse.json();
-    if (!registerResponse.ok) throw new Error(registerData.message || 'Registration failed');
-
-    // 2. Store Token
-    localStorage.setItem('token', registerData.token);
-    console.log('Token stored:', registerData.token);
-
-    // 3. Create User Profile (if needed)
-    const profileResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/profile`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${registerData.token}`
-      }
-    });
-
-    if (!profileResponse.ok) {
-      throw new Error('Profile creation failed');
+    // First check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}`);
     }
 
-    // 4. Immediate Redirect
-    navigate('/profile', {
-      state: { 
-        newlyRegistered: true,
-        userData: registerData.user 
-      }
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Registration failed');
+    }
+
+    // 2. Store Token and Update State
+    localStorage.setItem('token', data.token);
+    setSuccess(true);
+    
+    // 3. Immediate Redirect (no waiting)
+    navigate('/profile', { 
+      state: { newlyRegistered: true } 
     });
 
   } catch (err) {
-    setError(err.message);
-    console.error('Signup error:', err);
+    setError(err.message.includes('<!DOCTYPE') 
+      ? 'Server error - please try again later' 
+      : err.message);
   } finally {
     setLoading(false);
   }
