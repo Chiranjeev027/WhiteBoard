@@ -7,16 +7,7 @@ const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
         const newUser = await usermodel.register(name, email, password);
-        res.status(201).json({
-            success: true,
-            token: generatedToken,
-            user: {
-                id: newUser._id,
-                name: newUser.name,
-                email: newUser.email
-            }
-        });
-
+        res.status(201).json(newUser);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
