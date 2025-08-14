@@ -1,95 +1,133 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Login.css'; 
-
-const validatePassword = (password) => {
-  const minLength = 6;
-  if (password.length < minLength) {
-    return `Password must be at least ${minLength} characters`;
-  }
-  return null;
-};
+import './Signup.css'; // New dedicated CSS file
 
 function Signup() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: ''
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+
+  const validateForm = () => {
+    if (!formData.name.trim()) return 'Name is required';
+    if (!/^\S+@\S+\.\S+$/.test(formData.email)) return 'Invalid email format';
+    if (formData.password.length < 6) return 'Password must be at least 6 characters';
+    return null;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-        setError(passwordError);
-        return;
-    }
+    const validationError = validateForm();
+    if (validationError) return setError(validationError);
+
     setLoading(true);
-    
+    setError('');
+
     try {
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify(formData)
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Signup failed');
       
-      navigate('/login'); 
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      // Store token and redirect
+      localStorage.setItem('token', data.token);
+      setSuccess(true);
+      setTimeout(() => navigate('/profile'), 1500); // Smooth redirect
+      
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'An error occurred during registration');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
   return (
-    <div className="login-container">
-      <form onSubmit={handleSubmit} className="login-form">
-        <h2>Sign Up</h2>
+    <div className="signup-container">
+      <form onSubmit={handleSubmit} className="signup-form">
+        <h2 className="signup-title">Create Your Account</h2>
         
+        {success && (
+          <div className="success-message">
+            Account created successfully! Redirecting...
+          </div>
+        )}
+
         <div className="form-group">
-          <label>Full Name</label>
+          <label htmlFor="name" className="input-label">Full Name</label>
           <input
+            id="name"
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="Enter your full name"
             required
           />
         </div>
 
-        
         <div className="form-group">
-          <label>Email</label>
+          <label htmlFor="email" className="input-label">Email</label>
           <input
+            id="email"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="your@email.com"
             required
           />
         </div>
 
         <div className="form-group">
-          <label>Password</label>
+          <label htmlFor="password" className="input-label">Password</label>
           <input
+            id="password"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="At least 6 characters"
             minLength="6"
+            required
           />
         </div>
 
         {error && <div className="error-message">{error}</div>}
 
-        <button type="submit" disabled={loading}>
-          {loading ? 'Creating account...' : 'Sign Up'}
+        <button 
+          type="submit" 
+          className="submit-button"
+          disabled={loading}
+        >
+          {loading ? (
+            <span className="button-loader"></span>
+          ) : 'Sign Up'}
         </button>
 
-        <p className="login-link">
-          Already have an account? <a href="/login">Login</a>
+        <p className="login-redirect">
+          Already have an account? <a href="/login" className="login-link">Log in</a>
         </p>
       </form>
     </div>
