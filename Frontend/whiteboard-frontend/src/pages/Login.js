@@ -13,7 +13,7 @@ function Login() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
+    console.log('REACT_APP_BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
     console.log("Attempting login to:", `${process.env.REACT_APP_BACKEND_URL}/users/login`);
 
     try {

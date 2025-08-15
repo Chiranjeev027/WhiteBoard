@@ -1,3 +1,4 @@
+// Frontend/whiteboard-frontend/src/pages/Signup.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Signup.css'; // New dedicated CSS file
