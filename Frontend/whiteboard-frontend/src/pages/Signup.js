@@ -1,7 +1,7 @@
 // Frontend/whiteboard-frontend/src/pages/Signup.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Signup.css'; // New dedicated CSS file
+import './Signup.css'; 
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -77,75 +77,115 @@ const handleSubmit = async (e) => {
   };
 
   return (
-    <div className="signup-container">
-      <form onSubmit={handleSubmit} className="signup-form">
-        <h2 className="signup-title">Create Your Account</h2>
+    <div className="container-sm">
+      <div className="grid grid-2 gap-6" style={{ alignItems: 'center', minHeight: '80vh' }}>
         
-        {success && (
-          <div className="success-message">
-            Account created successfully! Redirecting...
+        {/* Left side - Branding */}
+        <div className="hide-mobile">
+          <h2 className="section-title">Create, collaborate, and iterate—visually.</h2>
+          <p className="page-subtitle mt-3">
+            A real-time whiteboard for teams. Sketch ideas, share canvases, and stay in sync.
+          </p>
+          <div className="flex gap-2 mt-6">
+            <span className="badge">✨ Real-time collaboration</span>
+            <span className="badge">🎨 Unlimited canvases</span>
+            <span className="badge">👥 Share with teammates</span>
           </div>
-        )}
-
-        <div className="form-group">
-          <label htmlFor="name" className="input-label">Full Name</label>
-          <input
-            id="name"
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="Enter your full name"
-            required
-          />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="email" className="input-label">Email</label>
-          <input
-            id="email"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="your@email.com"
-            required
-          />
+        {/* Right side - Form */}
+        <div className="card">
+          <div className="card-body">
+            <h3 className="section-title">Create your account</h3>
+            <p className="text-secondary text-sm mt-1">It only takes a moment.</p>
+
+            {success && (
+              <div className="alert alert-success mt-4">
+                Account created successfully! Redirecting...
+              </div>
+            )}
+            
+            {error && (
+              <div className="alert alert-error mt-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-6">
+              <div className="form-group">
+                <label className="label" htmlFor="name">Full Name</label>
+                <input
+                  id="name"
+                  name="name"
+                  className="input"
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label" htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  className="input"
+                  placeholder="you@company.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label" htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  className="input"
+                  placeholder="At least 8 characters"
+                  minLength={8}
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <div className="text-xs text-muted mt-1">
+                  Use 8+ characters for a strong password.
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="btn btn-primary btn-lg mt-4" 
+                style={{ width: '100%' }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner"></span>
+                    Creating account...
+                  </>
+                ) : (
+                  'Create account'
+                )}
+              </button>
+
+              <div className="text-center text-sm text-secondary mt-4">
+                Already have an account?{' '}
+                <a 
+                  href="/login" 
+                  style={{ color: 'var(--primary)', textDecoration: 'none' }}
+                >
+                  Log in
+                </a>
+              </div>
+            </form>
+          </div>
         </div>
-
-        <div className="form-group">
-          <label htmlFor="password" className="input-label">Password</label>
-          <input
-            id="password"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="At least 6 characters"
-            minLength="6"
-            required
-          />
-        </div>
-
-        {error && <div className="error-message">{error}</div>}
-
-        <button 
-          type="submit" 
-          className="submit-button"
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="button-loader"></span>
-          ) : 'Sign Up'}
-        </button>
-
-        <p className="login-redirect">
-          Already have an account? <a href="/login" className="login-link">Log in</a>
-        </p>
-      </form>
+      </div>
     </div>
   );
 }

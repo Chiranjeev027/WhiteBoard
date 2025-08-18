@@ -1,10 +1,8 @@
-// Frontend/whiteboard-frontend/src/pages/Profile.js
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createNewSocket } from '../utils/socket';
+import './Profile.css';
 
 const API_BASE_URL = process.env.REACT_APP_BACKEND_URL;
-
 
 function Profile() {
   const [profile, setProfile] = useState(null);
@@ -12,230 +10,238 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newCanvasName, setNewCanvasName] = useState('');
-  const [shareInputVisible, setShareInputVisible] = useState(null); // canvasId
+  const [createLoading, setCreateLoading] = useState(false);
+  const [shareInputVisible, setShareInputVisible] = useState(null);
   const [shareEmail, setShareEmail] = useState('');
+  const [theme, setTheme] = useState('system'); // 'light' | 'dark' | 'system'
   const navigate = useNavigate();
 
+  // Load profile & canvases
   useEffect(() => {
-    const fetchProfileAndCanvases = async () => {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
+      if (!token) return navigate('/login');
       try {
-        const profileRes = await fetch(`${API_BASE_URL}/users/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        const profileData = await profileRes.json();
-        if (!profileRes.ok) throw new Error(profileData.message || 'Failed to fetch profile');
-        setProfile(profileData.user);
-
-        const canvasRes = await fetch(`${API_BASE_URL}/canvas`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        const canvasData = await canvasRes.json();
-        if (!canvasRes.ok) throw new Error(canvasData.message || 'Failed to fetch canvases');
-        setCanvases(canvasData.canvases);
-
-        setLoading(false);
+        const [prRes, cvRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/users/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/canvas`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (!prRes.ok || !cvRes.ok) throw new Error('Fetch failed');
+        const pr = await prRes.json();
+        const cv = await cvRes.json();
+        setProfile(pr.user);
+        setCanvases(cv.canvases);
       } catch (err) {
-        setError(err.message || 'An error occurred');
-        navigate('/login');
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
-
-    fetchProfileAndCanvases();
+    fetchData();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
+  // Apply theme class on <html>
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    if (theme === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      root.classList.add(mq.matches ? 'dark' : 'light');
+      const handler = (e) => {
+        root.classList.remove('light', 'dark');
+        root.classList.add(e.matches ? 'dark' : 'light');
+      };
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    } else {
+      root.classList.add(theme);
+    }
+  }, [theme]);
 
   const handleCreateCanvas = async () => {
+    if (!newCanvasName.trim()) return alert('Enter a canvas name');
+    setCreateLoading(true);
     const token = localStorage.getItem('token');
-    if (!newCanvasName.trim()) {
-      alert('Canvas name cannot be empty');
-      return;
-    }
-
     try {
       const res = await fetch(`${API_BASE_URL}/canvas`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newCanvasName }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || 'Failed to create canvas');
-
-      setCanvases((prev) => [...prev, data.canvas]);
+      if (!res.ok) throw new Error(data.message);
+      setCanvases((p) => [...p, data.canvas]);
       setNewCanvasName('');
-      alert('Canvas created!');
-    } catch (error) {
-      console.error(error);
-      alert(error.message || 'Error creating canvas');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCreateLoading(false);
     }
   };
 
-  const handleShareCanvas = async (canvasId) => {
+  const handleShareCanvas = async (id) => {
+    if (!shareEmail.trim()) return alert('Enter an email');
     const token = localStorage.getItem('token');
-    if (!shareEmail.trim()) {
-      alert('Email cannot be empty');
-      return;
-    }
-
     try {
-      const res = await fetch(`${API_BASE_URL}/canvas/share/${canvasId}`, {
+      const res = await fetch(`${API_BASE_URL}/canvas/share/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ shared_with: shareEmail }),
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to share canvas');
-
+      if (!res.ok) throw new Error((await res.json()).message);
       alert('Canvas shared successfully!');
       setShareInputVisible(null);
       setShareEmail('');
-    } catch (error) {
-      console.error(error);
-      alert(error.message || 'Error sharing canvas');
+    } catch (err) {
+      alert(err.message);
     }
   };
 
+  const handleOpenCanvas = (id) => navigate(`/canvas/${id}`);
 
-  const handleOpenCanvas = (canvasId) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="mb-6">
+          <div className="skeleton" style={{ height: '32px', width: '300px', marginBottom: '8px' }}></div>
+          <div className="skeleton" style={{ height: '16px', width: '200px' }}></div>
+        </div>
+        <div className="skeleton mb-4" style={{ height: '60px' }}></div>
+        <div className="grid grid-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton" style={{ height: '180px' }}></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-    const socket = createNewSocket();
-
-    // Set up event handlers first
-    socket.on('connect', () => {
-      console.log("Socket connected, authenticating...");
-      socket.emit('authenticate', token);
-    });
-
-    socket.on('authenticationSuccess', () => {
-      console.log("Authentication successful, joining canvas...");
-      socket.emit('joinCanvas', { canvasId });
-    });
-
-    // Add these handlers
-    socket.on('loadCanvas', (canvasData) => {
-      navigate(`/canvas/${canvasId}`);
-    });
-
-    socket.on('canvasError', (err) => {
-      alert(`Canvas error: ${err.message}`);
-      console.error("Canvas error:", err);
-    });
-
-    // Connect socket
-    socket.connect();
-  };
-
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error) {
+    return <div className="container"><div className="alert alert-error">{error}</div></div>;
+  }
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Welcome, {profile?.name}!</h2>
-
-      <button onClick={handleLogout} style={styles.button}>Logout</button>
-
-      <hr style={{ margin: '1.5rem 0' }} />
-
-      <div style={styles.createCanvasSection}>
-        <h3>Create New Canvas</h3>
-        <input
-          type="text"
-          placeholder="Enter canvas name"
-          value={newCanvasName}
-          onChange={(e) => setNewCanvasName(e.target.value)}
-          style={styles.input}
-        />
-        <button onClick={handleCreateCanvas} style={styles.createButton}>
-          Create Canvas
-        </button>
+    <div className="container">
+      {/* Theme Switcher */}
+      <div className="flex justify-end mb-4">
+        <select 
+          value={theme} 
+          onChange={(e) => setTheme(e.target.value)} 
+          className="input" 
+          style={{ width: 'auto', minWidth: '120px' }}
+        >
+          <option value="system">🌓 System</option>
+          <option value="light">☀️ Light</option>
+          <option value="dark">🌙 Dark</option>
+        </select>
       </div>
 
-      <hr style={{ margin: '1.5rem 0' }} />
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="section-title">
+            Welcome back{profile ? `, ${profile.name}` : ''}!
+          </h1>
+          <p className="page-subtitle">
+            Your canvases and shared boards • {canvases.length} total
+          </p>
+        </div>
+      </div>
 
-      <h3>Your Canvases:</h3>
-      <div style={styles.canvasList}>
+      {/* Create Canvas */}
+      <div className="card mb-6">
+        <div className="card-body">
+          <h3 className="text-lg font-semibold mb-3">Create new canvas</h3>
+          <div className="create-canvas-form">
+            <input
+              className="input"
+              placeholder="Enter canvas name..."
+              value={newCanvasName}
+              onChange={(e) => setNewCanvasName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateCanvas()}
+            />
+            <button
+              onClick={handleCreateCanvas}
+              className="btn btn-primary"
+              disabled={createLoading}
+            >
+              {createLoading ? (
+                <>
+                  <span className="spinner"></span>
+                  Creating...
+                </>
+              ) : (
+                '+ Create Canvas'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Canvas Grid */}
+      <div className="grid grid-3 gap-4">
         {canvases.length === 0 ? (
-          <p>No canvases found.</p>
+          <div className="card hover-lift" style={{ gridColumn: '1 / -1', textAlign: 'center' }}>
+            <div className="card-body" style={{ padding: '48px 24px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎨</div>
+              <h3 className="text-lg font-semibold text-secondary mb-2">No canvases yet</h3>
+              <p className="text-sm text-muted">
+                Create your first canvas to start sketching and collaborating with your team.
+              </p>
+            </div>
+          </div>
         ) : (
           canvases.map((canvas) => (
-            <div key={canvas._id} style={styles.canvasCard}>
-              <h4>{canvas.name}</h4>
-              <p><strong>Created:</strong> {new Date(canvas.createdAt).toLocaleString()}</p>
+            <div key={canvas._id} className="card hover-lift">
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ flex: 1 }}>
+                  <h3 className="font-semibold text-lg mb-2">{canvas.name}</h3>
+                  <p className="text-xs text-muted mb-3">
+                    Updated {new Date(canvas.updatedAt).toLocaleDateString()}
+                  </p>
+                  <div className="mb-4">
+                    <span className={`badge ${String(canvas.owner) === String(profile?._id) ? 'badge-primary' : 'badge-success'}`}>
+                      {String(canvas.owner) === String(profile?._id) ? '👑 Owner' : '🤝 Shared'}
+                    </span>
+                  </div>
+                </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                  onClick={() => handleOpenCanvas(canvas._id)}
-                  style={styles.openButton}
-                >
-                  Open Canvas
-                </button>
-                <button
-                  onClick={() => {
-                    setShareInputVisible(
-                      shareInputVisible === canvas._id ? null : canvas._id
-                    );
-                    setShareEmail('');
-                  }}
-                  style={styles.shareButton}
-                >
-                  Share
-                </button>
-              </div>
-
-              {shareInputVisible === canvas._id && (
-                <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-                  <input
-                    type="email"
-                    placeholder="Enter user email"
-                    value={shareEmail}
-                    onChange={(e) => setShareEmail(e.target.value)}
-                    style={{ flex: 1, padding: '6px' }}
-                  />
-                  <button
-                    onClick={() => handleShareCanvas(canvas._id)}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#17a2b8',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleOpenCanvas(canvas._id)}
+                    className="btn btn-primary btn-sm"
+                    style={{ flex: 1 }}
                   >
-                    Share Canvas
+                    Open
+                  </button>
+                  <button 
+                    onClick={() => setShareInputVisible(shareInputVisible === canvas._id ? null : canvas._id)}
+                    className="btn btn-outline btn-sm"
+                  >
+                    Share
                   </button>
                 </div>
-              )}
+
+                {shareInputVisible === canvas._id && (
+                  <div className="mt-3 p-3" style={{ background: 'var(--border-light)', borderRadius: '8px' }}>
+                    <div className="flex gap-2">
+                      <input
+                        className="input"
+                        style={{ flex: 1, fontSize: '13px', padding: '8px 12px' }}
+                        placeholder="Enter email to share..."
+                        value={shareEmail}
+                        onChange={(e) => setShareEmail(e.target.value)}
+                      />
+                      <button 
+                        onClick={() => handleShareCanvas(canvas._id)}
+                        className="btn btn-primary btn-sm"
+                      >
+                        Send
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ))
         )}
@@ -243,75 +249,5 @@ function Profile() {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '700px',
-    margin: '2rem auto',
-    padding: '2rem',
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    backgroundColor: '#f9f9f9',
-  },
-  title: {
-    marginBottom: '1rem',
-  },
-  button: {
-    padding: '0.5rem 1rem',
-    background: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    marginTop: '1rem',
-  },
-  createCanvasSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginBottom: '1rem',
-  },
-  input: {
-    padding: '6px',
-    flex: 1,
-  },
-  createButton: {
-    padding: '6px 12px',
-    background: 'green',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  canvasList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-    marginTop: '1rem',
-  },
-  canvasCard: {
-    padding: '1rem',
-    border: '1px solid #ccc',
-    borderRadius: '6px',
-    backgroundColor: '#fff',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-  },
-  openButton: {
-    padding: '6px 12px',
-    background: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  shareButton: {
-    padding: '6px 12px',
-    background: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-};
 
 export default Profile;
