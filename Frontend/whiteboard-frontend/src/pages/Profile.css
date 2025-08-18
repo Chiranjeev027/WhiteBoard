@@ -376,3 +376,27 @@ html.dark .skeleton {
   min-width: 160px !important;
   width: auto !important;
 }
+
+
+.logout-btn {
+  /* force inline sizing */
+  display: inline-flex !important;
+  width: auto !important;
+  /* max-width: none !important; */
+  align-items: center;
+  padding: 4px 10px !important;
+  font-size: 13px !important;
+  line-height: 2 !important;
+  border-radius: 4px !important;
+  margin-left: 16px;
+}
+
+/* Danger colors */
+.logout-btn.btn-danger {
+  background-color: var(--danger) !important;
+  border: 1px solid var(--danger) !important;
+  color: #fff !important;
+}
+.logout-btn.btn-danger:hover {
+  background-color: #c53030 !important;
+}

@@ -58,6 +58,13 @@ function Profile() {
     }
   }, [theme]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setProfile(null);
+    setCanvases([]);
+    navigate('/login');
+  };
+
   const handleCreateCanvas = async () => {
     if (!newCanvasName.trim()) return alert('Enter a canvas name');
     setCreateLoading(true);
@@ -137,16 +144,24 @@ function Profile() {
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center mb-6">
         <div>
-          <h1 className="section-title">
+          <h1 className="section-title text-lg">
             Welcome back{profile ? `, ${profile.name}` : ''}!
           </h1>
           <p className="page-subtitle">
             Your canvases and shared boards • {canvases.length} total
           </p>
         </div>
+        <button
+          className="logout-btn btn-danger ml-auto"
+          onClick={handleLogout}
+          type="button"
+        >
+          Logout
+        </button>
       </div>
+
 
       {/* Create Canvas */}
       <div className="card mb-6">
